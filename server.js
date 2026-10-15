@@ -12,10 +12,6 @@ app.get("/", (req, res) => {
     res.status(200).json({ mensagem: "API Sistema de musicas funcionando" });
 });
 
-/* ==========================================================================
-   ROTAS DE ARTISTAS
-   ========================================================================== */
-
 app.get("/artistas", (req, res) => {
     const sql = "SELECT * FROM artistas";
     conexao.query(sql, (erro, resultado) => {
@@ -42,6 +38,52 @@ app.get("/artistas/:id", (req, res) => {
             return res.status(404).json({ erro: "Artista não encontrado" });
         }
         res.status(200).json(resultado[0]);
+    });
+});
+
+// LISTAR MÚSICAS DE UM ARTISTA ESPECÍFICO (JOIN)
+app.get("/artistas/:id/musicas", (req, res) => {
+    const id = Number(req.params.id);
+
+    if (isNaN(id) || id <= 0) {
+        return res.status(400).json({ erro: "ID inválido" });
+    }
+
+    const sql = `
+        SELECT musicas.*, artistas.nome AS artista_nome 
+        FROM musicas
+        INNER JOIN artistas ON musicas.artista_id = artistas.id
+        WHERE artistas.id = ?
+    `;
+
+    conexao.query(sql, [id], (erro, resultado) => {
+        if (erro) {
+            return res.status(500).json({ erro: "Erro ao buscar músicas do artista" });
+        }
+        res.status(200).json(resultado);
+    });
+});
+
+// LISTAR ÁLBUNS DE UM ARTISTA ESPECÍFICO (JOIN)
+app.get("/artistas/:id/albuns", (req, res) => {
+    const id = Number(req.params.id);
+
+    if (isNaN(id) || id <= 0) {
+        return res.status(400).json({ erro: "ID inválido" });
+    }
+
+    const sql = `
+        SELECT albuns.*, artistas.nome AS artista_nome 
+        FROM albuns
+        INNER JOIN artistas ON albuns.artista_id = artistas.id
+        WHERE artistas.id = ?
+    `;
+
+    conexao.query(sql, [id], (erro, resultado) => {
+        if (erro) {
+            return res.status(500).json({ erro: "Erro ao buscar álbuns do artista" });
+        }
+        res.status(200).json(resultado);
     });
 });
 
@@ -108,11 +150,6 @@ app.put("/artistas/:id", (req, res) => {
     });
 });
 
-/* ==========================================================================
-   ROTAS DE ÁLBUNS
-   ========================================================================== */
-
-// LISTAR TODOS OS ÁLBUNS
 app.get("/albuns", (req, res) => {
     const sql = "SELECT * FROM albuns";
     conexao.query(sql, (erro, resultado) => {
@@ -123,7 +160,6 @@ app.get("/albuns", (req, res) => {
     });
 });
 
-// BUSCAR ÁLBUM POR ID
 app.get("/albuns/:id", (req, res) => {
     const id = Number(req.params.id);
 
@@ -143,7 +179,6 @@ app.get("/albuns/:id", (req, res) => {
     });
 });
 
-// CADASTRAR ÁLBUM
 app.post("/albuns", (req, res) => {
     const { titulo, ano, artista_id } = req.body;
 
@@ -163,7 +198,6 @@ app.post("/albuns", (req, res) => {
     });
 });
 
-// ATUALIZAR ÁLBUM
 app.put("/albuns/:id", (req, res) => {
     const id = Number(req.params.id);
     const { titulo, ano, artista_id } = req.body;
@@ -188,7 +222,6 @@ app.put("/albuns/:id", (req, res) => {
     });
 });
 
-// EXCLUIR ÁLBUM
 app.delete("/albuns/:id", (req, res) => {
     const id = Number(req.params.id);
 
@@ -205,6 +238,31 @@ app.delete("/albuns/:id", (req, res) => {
             return res.status(404).json({ msg: "Álbum não encontrado" });
         }
         res.status(200).json({ msg: "Álbum excluído com sucesso" });
+    });
+});
+
+// LISTAR MÚSICAS COMPLETAS (Música + Álbum + Artista)
+app.get("/musicas-completas", (req, res) => {
+    const sql = `
+        SELECT 
+            musicas.id AS musica_id,
+            musicas.titulo AS musica_titulo,
+            musicas.duracao,
+            albuns.id AS album_id,
+            albuns.titulo AS album_titulo,
+            artistas.id AS artista_id,
+            artistas.nome AS artista_nome,
+            artistas.genero
+        FROM musicas
+        LEFT JOIN albuns ON musicas.album_id = albuns.id
+        LEFT JOIN artistas ON albuns.artista_id = artistas.id
+    `;
+
+    conexao.query(sql, (erro, resultado) => {
+        if (erro) {
+            return res.status(500).json({ erro: "Erro ao buscar músicas completas" });
+        }
+        res.status(200).json(resultado);
     });
 });
 
